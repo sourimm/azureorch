@@ -18,9 +18,15 @@ namespace DurableFunctionOrch
             var outputs = new List<string>();
 
             // Replace "hello" with the name of your Durable Activity Function.
-            outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "Tokyo"));
-            outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "Seattle"));
-            outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "London"));
+            // outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "Tokyo"));
+            // outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "Seattle"));
+            // outputs.Add(await context.CallActivityAsync<string>("orch_Hello", "London"));
+
+            SayHelloRequest data = context.GetInput<SayHelloRequest>();
+            foreach (var city in data.CityNames)
+            {
+                outputs.Add(await context.CallActivityAsync<string>("orch_Hello", city));
+            }
 
             // returns ["Hello Tokyo!", "Hello Seattle!", "Hello London!"]
             return outputs;
@@ -39,12 +45,18 @@ namespace DurableFunctionOrch
             [DurableClient] IDurableOrchestrationClient starter,
             ILogger log)
         {
+            var data = await req.Content.ReadAsAsync<SayHelloRequest>();
             // Function input comes from the request content.
-            string instanceId = await starter.StartNewAsync("orch", null);
+            string instanceId = await starter.StartNewAsync("orch", data);
 
             log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
 
             return starter.CreateCheckStatusResponse(req, instanceId);
         }
+    }
+
+    class SayHelloRequest
+    {
+        public List<string> CityNames { get; set; }
     }
 }
